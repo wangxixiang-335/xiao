@@ -54,12 +54,7 @@
               <p>10章精彩剧情，跟随水果王国的勇士一起冒险</p>
               <div class="card-action">点击进入 →</div>
             </div>
-            <div class="feature-card" @click="showPage('achievements')">
-              <div class="feature-icon">🏆</div>
-              <h3>成就系统</h3>
-              <p>收集成就，挑战高分，成为水果消除大师</p>
-              <div class="card-action">点击进入 →</div>
-            </div>
+
           </div>
           
           <div class="action-buttons">
@@ -170,33 +165,7 @@
         </div>
       </section>
 
-      <!-- 成就页面 -->
-      <section class="achievements-section" v-if="currentPage === 'achievements'">
-        <div class="achievements-container">
-          <h2 class="section-title">成就收集</h2>
-          <div class="achievements-grid">
-            <div 
-              v-for="achievement in achievements" 
-              :key="achievement.id"
-              :class="['achievement-card', { 'unlocked': achievement.unlocked }]"
-            >
-              <div class="achievement-icon">{{ achievement.icon }}</div>
-              <div class="achievement-info">
-                <h3>{{ achievement.name }}</h3>
-                <p>{{ achievement.description }}</p>
-              </div>
-              <div class="achievement-status">
-                {{ achievement.unlocked ? '✅' : '🔒' }}
-              </div>
-            </div>
-          </div>
-          
-          <div class="achievements-actions">
-            <button class="btn btn-outline" @click="unlockAllAchievements">解锁所有成就(测试)</button>
-            <button class="btn btn-secondary" @click="showPage('home')">返回主页</button>
-          </div>
-        </div>
-      </section>
+
 
       <!-- 设置页面 -->
       <section class="settings-section" v-if="currentPage === 'settings'">
@@ -258,11 +227,26 @@
       @chapter-complete="onChapterComplete"
       @story-complete="onStoryComplete"
     />
+    
+    <!-- 成就模态框 -->
+    <AchievementsModal
+      v-if="showAchievementsModal"
+      @close="hideAchievements"
+    />
+    
+    <!-- 成就通知 -->
+    <AchievementNotification
+      v-for="notification in achievementNotifications"
+      :key="notification.achievement.id"
+      :achievement="notification.achievement"
+      :show="showAchievementNotification"
+      @close="hideAchievementNotification"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useGameStore } from '../stores/game'
 import { storeToRefs } from 'pinia'
 import { GameMode } from '../types/game'
@@ -276,6 +260,8 @@ import TargetPanel from './TargetPanel.vue'
 import ToolsPanel from './ToolsPanel.vue'
 import GameOverModal from './GameOverModal.vue'
 import StoryModal from './StoryModal.vue'
+import AchievementsModal from './AchievementsModal.vue'
+import AchievementNotification from './AchievementNotification.vue'
 
 const gameStore = useGameStore()
 const { 
@@ -286,13 +272,16 @@ const {
   currentLevel, 
   gameMode, 
   isGameActive,
-  playerData
+  playerData,
+  showAchievementNotification,
+  achievementNotifications
 } = storeToRefs(gameStore)
 
 // 页面状态
 const currentPage = ref('home')
 const showStoryModal = ref(false)
 const selectedChapterId = ref(1)
+const showAchievementsModal = ref(false)
 
 // 视觉特效状态
 const isMouseMoving = ref(false)
@@ -305,40 +294,31 @@ const settings = ref({
   vibration: true
 })
 
-// 成就数据
-const allAchievements = [
-  { id: 'first_star', name: '初次通关', description: '完成第1关', icon: '🎯' },
-  { id: 'perfect_clear', name: '完美通关', description: '获得3星评价', icon: '⭐' },
-  { id: 'high_score', name: '高分达人', description: '获得25000分', icon: '🍓' },
-  { id: 'score_master', name: '得分高手', description: '获得10000分', icon: '🏆' },
-  { id: 'combo_master', name: '连击大师', description: '达成10连击', icon: '⚡' },
-  { id: 'combo_expert', name: '连击专家', description: '达成5连击', icon: '✨' },
-  { id: 'level_5', name: '五关新星', description: '完成第5关', icon: '🌟' },
-  { id: 'level_10', name: '十关达人', description: '完成第10关', icon: '👑' }
-]
 
-const achievements = computed(() => {
-  const unlockedAchievements = playerData.value.progress.achievements
-  return allAchievements.map(achievement => ({
-    ...achievement,
-    unlocked: unlockedAchievements.includes(achievement.id)
-  }))
-})
 
 // 章节数据
 const availableChapters = computed(() => {
   const unlockedChapters = gameStore.getUnlockedChapters()
   
+  // 从 localStorage 获取已读章节状态，确保响应式更新
+  const savedStoryData = localStorage.getItem('storyChaptersRead')
+  const readChapters = savedStoryData ? JSON.parse(savedStoryData) : []
+  
   return STORY_CHAPTERS.map(chapter => ({
     ...chapter,
     unlocked: unlockedChapters.includes(chapter.id),
-    read: chapter.isRead
+    read: readChapters.includes(chapter.id)
   }))
 })
 
 // 页面导航
 const showPage = (page: string) => {
   currentPage.value = page
+  
+  // 如果是成就页面，显示成就模态框
+  if (page === 'achievements') {
+    showAchievementsModal.value = true
+  }
   
   // 播放页面切换音效
   if (settings.value.soundVolume > 0) {
@@ -355,6 +335,9 @@ const startQuickGame = () => {
 // 打开章节
 const openChapter = (chapter: any) => {
   if (!chapter.unlocked) return
+  
+  // 标记章节为已读
+  gameStore.markChapterAsRead(chapter.id)
   
   selectedChapterId.value = chapter.id
   showStoryModal.value = true
@@ -375,15 +358,7 @@ const onStoryComplete = () => {
   console.log('故事完成')
 }
 
-// 解锁所有成就（测试用）
-const unlockAllAchievements = () => {
-  allAchievements.forEach(achievement => {
-    if (!playerData.value.progress.achievements.includes(achievement.id)) {
-      playerData.value.progress.achievements.push(achievement.id)
-    }
-  })
-  gameStore.savePlayerData()
-}
+
 
 // 更新设置
 const updateSettings = () => {
@@ -439,6 +414,21 @@ const forceEndGame = () => {
   console.log('强制结束游戏')
   gameStore.gameState.isGameActive = false
   gameStore.gameStarted = true
+}
+
+// 显示成就模态框
+const showAchievements = () => {
+  showAchievementsModal.value = true
+}
+
+// 隐藏成就模态框
+const hideAchievements = () => {
+  showAchievementsModal.value = false
+}
+
+// 隐藏成就通知
+const hideAchievementNotification = () => {
+  gameStore.hideAchievementPopup()
 }
 
 onMounted(() => {

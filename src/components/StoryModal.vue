@@ -255,8 +255,10 @@ const isChapterUnlocked = (chapterId: number): boolean => {
 }
 
 const isChapterRead = (chapterId: number): boolean => {
-  const progress = getStoryProgress()
-  return progress.readChapters && progress.readChapters.includes(chapterId)
+  // 使用游戏存储中的统一进度管理
+  const gameStore = useGameStore()
+  const unreadChapters = gameStore.getUnreadChapters()
+  return !unreadChapters.includes(chapterId)
 }
 
 const saveStoryProgress = (progress: any) => {

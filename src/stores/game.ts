@@ -1,5 +1,5 @@
-import { defineStore } from 'pinia'
 import { ref, computed, nextTick } from 'vue'
+import { defineStore } from 'pinia'
 import type { 
   GameState, 
   GameGrid, 
@@ -13,6 +13,7 @@ import type {
 } from '../types/game'
 import { GameMode, ElementType } from '../types/game'
 import { STORY_CHAPTERS, type StoryProgress } from '../types/story'
+import { ACHIEVEMENTS, type Achievement, type AchievementProgress, type PlayerAchievements, type AchievementNotification, AchievementCategory } from '../types/achievement'
 import { audioManager } from '../utils/audio'
 import { getParticleSystem } from '../utils/particles'
 import { responsiveManager, performanceOptimizer } from '../utils/responsive'
@@ -57,7 +58,6 @@ export const useGameStore = defineStore('game', () => {
     progress: {
       currentLevel: 1,
       levelStars: {},
-      achievements: [],
       infiniteModeHighScore: 0
     }
   })
@@ -68,6 +68,19 @@ export const useGameStore = defineStore('game', () => {
     unlockedChapters: [1],
     lastReadChapter: null
   })
+
+  // 成就系统
+  const achievements = ref<Achievement[]>(ACHIEVEMENTS.map(achievement => ({ ...achievement })))
+  const playerAchievements = ref<PlayerAchievements>({
+    unlockedAchievements: [],
+    achievementProgress: {},
+    totalAchievements: ACHIEVEMENTS.length,
+    unlockedCount: 0
+  })
+  
+  // 成就通知
+  const achievementNotifications = ref<AchievementNotification[]>([])
+  const showAchievementNotification = ref(false)
 
   // 计算属性
   const currentScore = computed(() => gameState.value.score)
@@ -436,6 +449,9 @@ export const useGameStore = defineStore('game', () => {
     gameState.value.combo++
 
     console.log('Score updated:', gameState.value.score, 'Moves:', gameState.value.moves, 'Is player move:', isPlayerMove)
+    
+    // 检查元素消除成就
+    checkElementAchievements(matches.length)
 
     // 更新收集目标
     if (gameState.value.target && gameMode.value === GameMode.COLLECT) {
@@ -533,9 +549,9 @@ export const useGameStore = defineStore('game', () => {
 
     // 经典模式：检查是否达到目标分数
     if (gameMode.value === GameMode.CLASSIC && gameState.value.score >= 500) {
-      console.log('达到目标分数，直接结束游戏')
-      // 直接结束游戏，不使用复杂的自动完成逻辑
-      endGame(true)
+      console.log('达到目标分数，触发自动完成')
+      // 触发自动完成功能
+      startAutoComplete()
       return
     }
 
@@ -563,6 +579,12 @@ export const useGameStore = defineStore('game', () => {
     gameState.value.isGameActive = false
     console.log('设置 isGameActive = false，当前值:', gameState.value.isGameActive)
     
+    // 确保游戏已经开始过，这样弹窗才会显示
+    if (!gameStarted.value) {
+      gameStarted.value = true
+      console.log('设置 gameStarted = true，确保弹窗显示')
+    }
+    
     if (won) {
       // 播放胜利音效
       audioManager.playVictorySequence()
@@ -577,17 +599,21 @@ export const useGameStore = defineStore('game', () => {
         console.log(`解锁第${currentLevel + 1}关`)
       }
       
-      // 检查并解锁成就
-      checkAndUnlockAchievements(currentLevel, stars)
-      
       // 处理剧情进度
       onLevelComplete(currentLevel)
+      
+      // 检查成就
+      checkGameAchievements(won)
       
       // 保存玩家数据
       savePlayerData()
     }
     
     console.log('游戏结束处理完成，弹窗应该显示')
+    console.log('最终状态检查:', {
+      isGameActive: gameState.value.isGameActive,
+      gameStarted: gameStarted.value
+    })
   }
 
   // 计算星级
@@ -777,7 +803,15 @@ export const useGameStore = defineStore('game', () => {
 
   // 保存玩家数据
   function savePlayerData(): void {
-    localStorage.setItem('playerData', JSON.stringify(playerData.value))
+    const dataToSave = JSON.stringify(playerData.value)
+    localStorage.setItem('playerData', dataToSave)
+    console.log('保存玩家数据到localStorage')
+    
+    // 立即验证保存是否成功
+    const saved = localStorage.getItem('playerData')
+    if (saved) {
+      console.log('验证localStorage中的数据')
+    }
   }
 
   // 加载玩家数据
@@ -794,9 +828,12 @@ export const useGameStore = defineStore('game', () => {
     
     // 初始化剧情系统
     initializeStorySystem()
+    
+    // 初始化成就系统
+    initializeAchievements()
   }
 
-// 保存当前游戏状态
+  // 保存当前游戏状态
   function saveCurrentGameState(): void {
     const currentGameState = {
       gameState: gameState.value,
@@ -806,7 +843,7 @@ export const useGameStore = defineStore('game', () => {
     localStorage.setItem('currentGameState', JSON.stringify(currentGameState))
   }
 
-// 加载当前游戏状态
+  // 加载当前游戏状态
   function loadCurrentGameState(): boolean {
     const saved = localStorage.getItem('currentGameState')
     if (saved) {
@@ -828,25 +865,23 @@ export const useGameStore = defineStore('game', () => {
     return false
   }
 
-// 清除当前游戏状态
+  // 清除当前游戏状态
   function clearCurrentGameState(): void {
     localStorage.removeItem('currentGameState')
   }
 
-  // 加载玩家数据
-  function loadPlayerData(): void {
+  // 刷新玩家数据（从localStorage重新加载）
+  function refreshPlayerData(): void {
     const saved = localStorage.getItem('playerData')
     if (saved) {
       try {
         const data = JSON.parse(saved)
         playerData.value = { ...playerData.value, ...data }
+        console.log('玩家数据已刷新')
       } catch (error) {
-        console.warn('Failed to load player data:', error)
+        console.warn('Failed to refresh player data:', error)
       }
     }
-    
-    // 初始化剧情系统
-    initializeStorySystem()
   }
 
   // 检查死局
@@ -946,6 +981,9 @@ export const useGameStore = defineStore('game', () => {
       const readChapters = STORY_CHAPTERS.filter(ch => ch.isRead).map(ch => ch.id)
       localStorage.setItem('storyChaptersRead', JSON.stringify(readChapters))
       
+      // 检查剧情成就
+      checkStoryAchievements()
+      
       saveStoryProgress()
     }
   }
@@ -987,37 +1025,6 @@ export const useGameStore = defineStore('game', () => {
     })
   }
 
-  // 解锁成就
-  function unlockAchievement(achievementId: string): void {
-    if (!playerData.value.progress.achievements.includes(achievementId)) {
-      playerData.value.progress.achievements.push(achievementId)
-      console.log(`解锁成就: ${achievementId}`)
-      savePlayerData()
-    }
-  }
-
-  // 检查并解锁成就
-  function checkAndUnlockAchievements(level: number, stars: number): void {
-    const score = gameState.value.score
-    const maxCombo = parseInt(localStorage.getItem('maxCombo') || '0')
-    
-    // 星级成就
-    if (stars === 3) unlockAchievement('perfect_clear')
-    if (stars >= 1) unlockAchievement('first_star')
-    
-    // 分数成就
-    if (score >= 25000) unlockAchievement('high_score')
-    if (score >= 10000) unlockAchievement('score_master')
-    
-    // 连击成就
-    if (maxCombo >= 10) unlockAchievement('combo_master')
-    if (maxCombo >= 5) unlockAchievement('combo_expert')
-    
-    // 关卡成就
-    if (level >= 10) unlockAchievement('level_10')
-    if (level >= 5) unlockAchievement('level_5')
-  }
-
   // 在关卡完成时自动解锁新章节
   function onLevelComplete(level: number): void {
     // 解锁新章节 - 只有当关卡达到章节的解锁要求时才解锁
@@ -1036,9 +1043,7 @@ export const useGameStore = defineStore('game', () => {
     saveStoryProgress()
   }
 
-  
-
-// 自动完成功能
+  // 自动完成功能
   function startAutoComplete(): void {
     if (gameMode.value !== GameMode.CLASSIC || gameState.value.isAutoCompleting) {
       return
@@ -1290,7 +1295,7 @@ export const useGameStore = defineStore('game', () => {
     }, 1000)
   }
 
-// 初始化剧情系统
+  // 初始化剧情系统
   function initializeStorySystem(): void {
     const savedProgress = getStoryProgress()
     storyProgress.value = savedProgress
@@ -1317,31 +1322,245 @@ export const useGameStore = defineStore('game', () => {
       })
     }
   }
-  function initializeStorySystem(): void {
-    const savedProgress = getStoryProgress()
-    storyProgress.value = savedProgress
+
+  // 成就系统方法
+  function initializeAchievements(): void {
+    loadAchievements()
+    console.log('成就系统已初始化')
+  }
+
+  function checkAchievements(type: string, value: number, condition?: string): void {
+    achievements.value.forEach(achievement => {
+      // 跳过已解锁的成就
+      if (achievement.isUnlocked) return
+      
+      // 检查成就类型是否匹配
+      if (achievement.requirement.type !== type) return
+      
+      // 检查特殊条件
+      if (achievement.requirement.condition && condition !== achievement.requirement.condition) return
+      
+      // 检查是否满足解锁条件
+      if (value >= achievement.requirement.target) {
+        unlockAchievement(achievement.id)
+      } else {
+        // 更新进度
+        updateAchievementProgress(achievement.id, value)
+      }
+    })
+  }
+
+  function unlockAchievement(achievementId: string): void {
+    const achievement = achievements.value.find(a => a.id === achievementId)
+    if (!achievement || achievement.isUnlocked) return
     
-    // 恢复章节阅读状态 - 从本地存储中恢复
-    const savedStoryData = localStorage.getItem('storyChaptersRead')
-    if (savedStoryData) {
+    // 标记为已解锁
+    achievement.isUnlocked = true
+    achievement.unlockedAt = new Date()
+    
+    // 更新玩家成就数据
+    if (!playerAchievements.value.unlockedAchievements.includes(achievementId)) {
+      playerAchievements.value.unlockedAchievements.push(achievementId)
+      playerAchievements.value.unlockedCount++
+      playerAchievements.value.lastUnlocked = achievementId
+      playerAchievements.value.unlockedAt = new Date()
+    }
+    
+    // 更新进度
+    playerAchievements.value.achievementProgress[achievementId] = {
+      achievementId,
+      currentProgress: achievement.requirement.target,
+      isUnlocked: true,
+      unlockedAt: new Date()
+    }
+    
+    // 发放奖励
+    grantAchievementReward(achievement)
+    
+    // 显示成就通知
+    showAchievementPopup(achievement)
+    
+    // 保存成就数据
+    saveAchievements()
+    
+    console.log(`成就已解锁: ${achievement.title}`)
+  }
+
+  function updateAchievementProgress(achievementId: string, progress: number): void {
+    const achievement = achievements.value.find(a => a.id === achievementId)
+    if (!achievement || achievement.isUnlocked) return
+    
+    // 只对进度型成就更新进度
+    if (achievement.type !== 'progressive' && achievement.type !== 'cumulative') return
+    
+    // 获取当前进度
+    const currentProgress = playerAchievements.value.achievementProgress[achievementId]?.currentProgress || 0
+    
+    // 更新进度
+    const newProgress = Math.max(currentProgress, progress)
+    playerAchievements.value.achievementProgress[achievementId] = {
+      achievementId,
+      currentProgress: newProgress,
+      isUnlocked: false
+    }
+    
+    // 更新成就对象的进度
+    if (achievement.progress !== undefined && achievement.maxProgress !== undefined) {
+      achievement.progress = newProgress
+    }
+    
+    // 检查是否达到目标
+    if (newProgress >= achievement.requirement.target) {
+      unlockAchievement(achievementId)
+    }
+  }
+
+  function grantAchievementReward(achievement: Achievement): void {
+    switch (achievement.reward.type) {
+      case 'items':
+        grantItems(achievement.reward.value as number)
+        break
+      case 'titles':
+        // 称号系统可以后续扩展
+        console.log(`获得称号: ${achievement.reward.value}`)
+        break
+      case 'stars':
+        // 星星系统可以后续扩展
+        console.log(`获得星星: ${achievement.reward.value}`)
+        break
+      default:
+        break
+    }
+  }
+
+  function grantItems(count: number): void {
+    // 随机分配道具
+    const items = ['hammers', 'swappers', 'rainbowBalls']
+    const randomItem = items[Math.floor(Math.random() * items.length)]
+    playerData.value.inventory[randomItem as keyof PlayerInventory] += count
+    savePlayerData()
+  }
+
+  function getAchievementsByCategory(category: AchievementCategory): Achievement[] {
+    return achievements.value.filter(a => a.category === category)
+  }
+
+  function getUnlockedAchievements(): Achievement[] {
+    return achievements.value.filter(a => a.isUnlocked)
+  }
+
+  function getLockedAchievements(): Achievement[] {
+    return achievements.value.filter(a => !a.isUnlocked)
+  }
+
+  function getAchievementProgress(achievementId: string): number {
+    const progress = playerAchievements.value.achievementProgress[achievementId]
+    return progress ? progress.currentProgress : 0
+  }
+
+  function saveAchievements(): void {
+    const dataToSave = {
+      unlockedAchievements: playerAchievements.value.unlockedAchievements,
+      achievementProgress: playerAchievements.value.achievementProgress,
+      lastUnlocked: playerAchievements.value.lastUnlocked,
+      unlockedAt: playerAchievements.value.unlockedAt
+    }
+    localStorage.setItem('playerAchievements', JSON.stringify(dataToSave))
+  }
+
+  function loadAchievements(): void {
+    const saved = localStorage.getItem('playerAchievements')
+    if (saved) {
       try {
-        const readChapters = JSON.parse(savedStoryData)
-        STORY_CHAPTERS.forEach(chapter => {
-          chapter.isRead = readChapters.includes(chapter.id)
+        const data = JSON.parse(saved)
+        playerAchievements.value.unlockedAchievements = data.unlockedAchievements || []
+        playerAchievements.value.achievementProgress = data.achievementProgress || {}
+        playerAchievements.value.lastUnlocked = data.lastUnlocked
+        playerAchievements.value.unlockedAt = data.unlockedAt ? new Date(data.unlockedAt) : undefined
+        playerAchievements.value.unlockedCount = playerAchievements.value.unlockedAchievements.length
+        
+        // 更新成就状态
+        achievements.value.forEach(achievement => {
+          if (playerAchievements.value.unlockedAchievements.includes(achievement.id)) {
+            achievement.isUnlocked = true
+            achievement.unlockedAt = playerAchievements.value.unlockedAt
+          }
+          
+          // 更新进度
+          const progress = playerAchievements.value.achievementProgress[achievement.id]
+          if (progress && !achievement.isUnlocked) {
+            if (achievement.progress !== undefined && achievement.maxProgress !== undefined) {
+              achievement.progress = progress.currentProgress
+            }
+          }
         })
       } catch (error) {
-        console.warn('Failed to load story chapters read status:', error)
-        // 如果加载失败，只恢复最后阅读的章节
-        STORY_CHAPTERS.forEach(chapter => {
-          chapter.isRead = savedProgress.lastReadChapter === chapter.id
-        })
+        console.warn('Failed to load achievements:', error)
       }
-    } else {
-      // 如果没有保存的数据，只恢复最后阅读的章节
-      STORY_CHAPTERS.forEach(chapter => {
-        chapter.isRead = savedProgress.lastReadChapter === chapter.id
-      })
     }
+  }
+
+  function showAchievementPopup(achievement: Achievement): void {
+    const notification: AchievementNotification = {
+      achievement,
+      isNew: true,
+      showTime: Date.now()
+    }
+    
+    achievementNotifications.value.push(notification)
+    showAchievementNotification.value = true
+    
+    // 播放成就音效
+    audioManager.playSound('achievement')
+    
+    // 自动隐藏通知
+    setTimeout(() => {
+      hideAchievementPopup()
+    }, 3000)
+  }
+
+  function hideAchievementPopup(): void {
+    showAchievementNotification.value = false
+  }
+
+  function checkGameAchievements(won: boolean): void {
+    if (!won) return
+    
+    // 检查游戏次数成就
+    const gamesPlayed = parseInt(localStorage.getItem('gamesPlayed') || '0') + 1
+    localStorage.setItem('gamesPlayed', gamesPlayed.toString())
+    checkAchievements('games', gamesPlayed)
+    
+    // 检查分数成就
+    checkAchievements('score', gameState.value.score)
+    
+    // 检查关卡成就
+    checkAchievements('level', playerData.value.progress.currentLevel)
+    
+    // 检查连击成就
+    const maxCombo = parseInt(localStorage.getItem('maxCombo') || '0')
+    checkAchievements('combo', maxCombo)
+  }
+
+  function checkElementAchievements(elementsCount: number): void {
+    // 检查收集成就
+    const totalElements = parseInt(localStorage.getItem('totalElements') || '0') + elementsCount
+    localStorage.setItem('totalElements', totalElements.toString())
+    checkAchievements('elements', totalElements)
+  }
+
+  function checkStoryAchievements(): void {
+    // 检查剧情成就
+    const readChapters = storyProgress.value.unlockedChapters.filter(chapterId => {
+      const chapter = STORY_CHAPTERS.find(ch => ch.id === chapterId)
+      return chapter && chapter.isRead
+    })
+    checkAchievements('chapters', readChapters.length)
+  }
+
+  function checkSpecialAchievements(type: string): void {
+    // 检查特殊成就
+    checkAchievements('special', 1, type)
   }
 
   return {
@@ -1368,6 +1587,7 @@ export const useGameStore = defineStore('game', () => {
     useTool,
     savePlayerData,
     loadPlayerData,
+    refreshPlayerData,
     saveCurrentGameState,
     loadCurrentGameState,
     clearCurrentGameState,
@@ -1392,11 +1612,32 @@ export const useGameStore = defineStore('game', () => {
     onLevelComplete,
     initializeStorySystem,
     
+    // 成就系统状态
+    achievements,
+    playerAchievements,
+    achievementNotifications,
+    showAchievementNotification,
+    
+    // 成就系统方法
+    initializeAchievements,
+    checkAchievements,
+    unlockAchievement,
+    updateAchievementProgress,
+    getAchievementsByCategory,
+    getUnlockedAchievements,
+    getLockedAchievements,
+    getAchievementProgress,
+    saveAchievements,
+    loadAchievements,
+    showAchievementPopup,
+    hideAchievementPopup,
+    checkGameAchievements,
+    checkElementAchievements,
+    checkStoryAchievements,
+    checkSpecialAchievements,
+    
     // 快捷方法
     startGame: startNewGame,
     restartGame: () => startNewGame(gameState.value.mode, gameState.value.level)
   }
-
-  // 初始化玩家数据
-  loadPlayerData()
 })

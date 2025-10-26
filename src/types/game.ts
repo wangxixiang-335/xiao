@@ -51,7 +51,7 @@ export interface GameTarget {
 export interface PlayerProgress {
   currentLevel: number;
   levelStars: Record<number, { stars: number; score: number }>;
-  achievements: string[];
+
   infiniteModeHighScore: number;
 }
 

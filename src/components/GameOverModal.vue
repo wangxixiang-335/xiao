@@ -40,14 +40,7 @@
           </button>
         </div>
         
-        <div class="achievements" v-if="newAchievements.length > 0">
-          <h3>新成就解锁！</h3>
-          <div class="achievement-list">
-            <div v-for="achievement in newAchievements" :key="achievement" class="achievement-item">
-              🏆 {{ achievement }}
-            </div>
-          </div>
-        </div>
+
       </div>
       
       <div class="modal-footer">
@@ -158,6 +151,8 @@ const newAchievements = computed(() => {
   const currentLevel = gameState.level
   const maxCombo = parseInt(localStorage.getItem('maxCombo') || '0')
   
+  console.log('GameOverModal - 当前已解锁成就:', currentAchievements)
+  
   // 成就映射
   const achievementMap = {
     'perfect_clear': '完美通关',
@@ -189,10 +184,13 @@ const newAchievements = computed(() => {
   if (currentLevel >= 10) potentialAchievements.push('level_10')
   if (currentLevel >= 5) potentialAchievements.push('level_5')
   
+  console.log('GameOverModal - 潜在成就:', potentialAchievements)
+  
   // 检查哪些是新解锁的成就
   potentialAchievements.forEach(achievementId => {
     if (!currentAchievements.includes(achievementId)) {
       achievements.push(achievementMap[achievementId] || achievementId)
+      console.log('GameOverModal - 新成就:', achievementId)
     }
   })
   
