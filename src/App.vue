@@ -39,6 +39,9 @@ body {
   width: 100vw;
   height: 100vh;
   position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 全局滚动条样式优化 */

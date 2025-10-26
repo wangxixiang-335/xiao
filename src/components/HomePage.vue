@@ -444,11 +444,15 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 主页特定样式 */
 .home-page {
+  height: 100vh;
   min-height: 100vh;
   background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .home-page::before {
@@ -526,7 +530,9 @@ onUnmounted(() => {
 
 .main-content {
   padding-top: 100px;
-  min-height: 100vh;
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .welcome-section {
