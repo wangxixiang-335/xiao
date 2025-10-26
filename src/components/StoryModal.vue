@@ -413,41 +413,15 @@ watch(currentChapter, () => {
 
 // 初始化
 const initStory = () => {
-  const progress = getStoryProgress()
+  // 使用游戏存储的统一进度管理
+  const gameStore = useGameStore()
+  const progress = gameStore.getStoryProgress()
   
-  // 重置所有章节的解锁状态，只保留已读的章节
-  const unlockedChapters = [1] // 第一章始终解锁
-  
-  // 如果有已读章节，解锁到最高已读章节的下一章
-  if (progress.readChapters && progress.readChapters.length > 0) {
-    const maxReadChapter = Math.max(...progress.readChapters)
-    for (let i = 1; i <= Math.min(maxReadChapter + 1, totalChapters.value); i++) {
-      if (!unlockedChapters.includes(i)) {
-        unlockedChapters.push(i)
-      }
-    }
+  // 确保第一章是未读状态（如果是新游戏）
+  const firstChapter = STORY_CHAPTERS.find(ch => ch.id === 1)
+  if (firstChapter && !gameStore.getUnreadChapters().includes(1)) {
+    firstChapter.isRead = false
   }
-  
-  progress.unlockedChapters = unlockedChapters
-  
-  // 恢复已读状态
-  if (progress.readChapters && progress.readChapters.length > 0) {
-    progress.readChapters.forEach(chapterId => {
-      const chapter = STORY_CHAPTERS.find(ch => ch.id === chapterId)
-      if (chapter) {
-        chapter.isRead = true
-      }
-    })
-  }
-  
-  // 重置其他章节的已读状态
-  STORY_CHAPTERS.forEach(chapter => {
-    if (!progress.readChapters || !progress.readChapters.includes(chapter.id)) {
-      chapter.isRead = false
-    }
-  })
-  
-  saveStoryProgress(progress)
   
   if (!props.chapterId) {
     currentChapterId.value = progress.currentChapter

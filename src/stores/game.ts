@@ -999,6 +999,39 @@ export const useGameStore = defineStore('game', () => {
     })
   }
 
+  function initializeStorySystem(): void {
+    // 加载已保存的剧情进度
+    const savedProgress = getStoryProgress()
+    storyProgress.value = savedProgress
+    
+    // 加载已读章节状态
+    const savedReadChapters = localStorage.getItem('storyChaptersRead')
+    if (savedReadChapters) {
+      try {
+        const readChapterIds = JSON.parse(savedReadChapters)
+        STORY_CHAPTERS.forEach(chapter => {
+          chapter.isRead = readChapterIds.includes(chapter.id)
+        })
+      } catch (error) {
+        console.warn('Failed to load read chapters:', error)
+      }
+    }
+    
+    // 确保第一章是未读状态（如果是新游戏）
+    if (!savedReadChapters || JSON.parse(savedReadChapters).length === 0) {
+      const firstChapter = STORY_CHAPTERS.find(ch => ch.id === 1)
+      if (firstChapter) {
+        firstChapter.isRead = false
+      }
+    }
+    
+    // 确保至少第一章是解锁的
+    if (!storyProgress.value.unlockedChapters.includes(1)) {
+      storyProgress.value.unlockedChapters = [1]
+      saveStoryProgress()
+    }
+  }
+
   function shouldShowStoryForLevel(level: number): boolean {
     const unreadChapters = getUnreadChapters()
     return unreadChapters.some(chapterId => {

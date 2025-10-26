@@ -344,13 +344,14 @@ body {
   max-width: 700px;
   margin-bottom: 25px;
   padding: 20px 30px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.92) 100%);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.6);
   position: relative;
   overflow: hidden;
+  z-index: 10;
 }
 
 .game-header::before {
@@ -384,9 +385,10 @@ body {
   position: relative;
   padding: 8px 15px;
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .info-label {
@@ -414,6 +416,9 @@ body {
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.3);
   overflow: hidden;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .game-board::before {
@@ -575,8 +580,9 @@ body {
   cursor: pointer;
   transition: all var(--transition-normal);
   position: relative;
-  box-shadow: var(--shadow-lg);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3), 0 4px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
 }
 
 .tool-btn:hover:not(:disabled) {

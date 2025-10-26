@@ -154,6 +154,9 @@ const handleCellClick = performanceOptimizer.throttle((cell: GameElement | null,
   background: rgba(240, 240, 240, 0.8);
   border-radius: 15px;
   transition: all 0.3s ease;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .grid-cell {
