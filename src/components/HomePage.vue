@@ -25,10 +25,10 @@
           <h1 class="logo-text">消消来解压</h1>
         </div>
         <nav class="nav-menu">
-          <button class="nav-btn" @click="showPage('game')">开始游戏</button>
-          <button class="nav-btn" @click="showPage('story')">剧情模式</button>
-          <button class="nav-btn" @click="showPage('achievements')">成就</button>
-          <button class="nav-btn" @click="showPage('settings')">设置</button>
+          <button class="nav-btn" @click="showPage('game')" :class="{ active: currentPage === 'game' }">开始游戏</button>
+          <button class="nav-btn" @click="showPage('story')" :class="{ active: currentPage === 'story' }">剧情模式</button>
+          <button class="nav-btn" @click="showPage('achievements')" :class="{ active: currentPage === 'achievements' }">成就</button>
+          <button class="nav-btn" @click="showPage('settings')" :class="{ active: currentPage === 'settings' }">设置</button>
         </nav>
       </div>
     </header>
@@ -54,15 +54,23 @@
               <p>10章精彩剧情，跟随水果王国的勇士一起冒险</p>
               <div class="card-action">点击进入 →</div>
             </div>
-
+            <div class="feature-card" @click="showPage('achievements')">
+              <div class="feature-icon">🏆</div>
+              <h3>成就系统</h3>
+              <p>收集成就，挑战高分，成为水果消除大师</p>
+              <div class="card-action">点击进入 →</div>
+            </div>
           </div>
           
           <div class="action-buttons">
             <button class="btn btn-primary btn-large" @click="startQuickGame">
-              快速开始
+              🎮 快速开始
             </button>
             <button class="btn btn-secondary btn-large" @click="showPage('story')">
-              剧情模式
+              📖 剧情模式
+            </button>
+            <button class="btn btn-outline btn-large" @click="showPage('achievements')">
+              🏆 查看成就
             </button>
           </div>
         </div>
@@ -115,23 +123,6 @@
             v-if="!isGameActive && gameStarted" 
             @back-to-menu="showPage('home')"
           />
-          
-          <!-- 调试面板 -->
-          <div v-if="currentPage === 'game'" class="debug-panel" style="position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); color: white; padding: 15px; font-size: 12px; z-index: 9999; border-radius: 8px; max-width: 300px;">
-            <h4 style="margin: 0 0 10px 0; color: #4CAF50;">游戏状态调试</h4>
-            <div>isGameActive: <span :style="{ color: isGameActive ? '#f44336' : '#4CAF50' }">{{ isGameActive }}</span></div>
-            <div>gameStarted: <span :style="{ color: gameStarted ? '#4CAF50' : '#f44336' }">{{ gameStarted }}</span></div>
-            <div>显示弹窗: <span :style="{ color: (!isGameActive && gameStarted) ? '#4CAF50' : '#f44336' }">{{ !isGameActive && gameStarted }}</span></div>
-            <div>当前关卡: {{ currentLevel }}</div>
-            <div>当前分数: {{ currentScore }}</div>
-            <div>剩余步数: {{ remainingMoves }}</div>
-            <div>游戏模式: {{ gameMode }}</div>
-            <hr style="margin: 10px 0; border: 1px solid #555;">
-            <div>自动完成中: {{ gameState.isAutoCompleting }}</div>
-            <div>动画中: {{ gameState.isAnimating }}</div>
-            <div>连击数: {{ gameState.combo }}</div>
-            <button @click="forceEndGame" style="margin-top: 10px; padding: 5px 10px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">强制结束游戏</button>
-          </div>
         </div>
       </section>
 
@@ -532,6 +523,13 @@ onUnmounted(() => {
   border-color: rgba(255, 255, 255, 0.7);
 }
 
+.nav-btn.active {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
 .main-content {
   padding-top: 100px;
   flex: 1;
@@ -628,6 +626,10 @@ onUnmounted(() => {
   padding: 15px 30px;
   font-size: var(--font-lg);
   min-height: 55px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 /* 水果装饰动画 */
@@ -637,6 +639,7 @@ onUnmounted(() => {
   animation: float 6s ease-in-out infinite;
   z-index: 1;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  opacity: 0.8;
 }
 
 .fruit-1 { top: 10%; left: 5%; animation-delay: 0s; }
@@ -645,6 +648,10 @@ onUnmounted(() => {
 .fruit-4 { top: 60%; right: 5%; animation-delay: 3s; }
 .fruit-5 { bottom: 20%; left: 10%; animation-delay: 4s; }
 .fruit-6 { bottom: 10%; right: 15%; animation-delay: 5s; }
+.fruit-7 { top: 15%; right: 20%; animation-delay: 0.5s; }
+.fruit-8 { top: 70%; left: 25%; animation-delay: 1.5s; }
+.fruit-9 { bottom: 30%; right: 30%; animation-delay: 2.5s; }
+.fruit-10 { top: 25%; left: 35%; animation-delay: 3.5s; }
 
 @keyframes float {
   0%, 100% { transform: translateY(0px) rotate(0deg); }
@@ -689,7 +696,7 @@ onUnmounted(() => {
 /* 章节卡片样式 */
 .chapter-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(200px, 1fr));
+  grid-template-columns: repeat(5, minmax(180px, 1fr));
   gap: 20px;
   margin: 30px 0;
   justify-content: center;
@@ -707,12 +714,34 @@ onUnmounted(() => {
   transition: all var(--transition-normal);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.chapter-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.chapter-card:hover::before {
+  left: 100%;
 }
 
 .chapter-card:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: translateY(-5px);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+}
+
+.chapter-card.unlocked.read {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.4);
 }
 
 .chapter-card.locked {
