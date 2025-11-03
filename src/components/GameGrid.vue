@@ -35,6 +35,26 @@ const { gameGrid, selectCell } = gameStore
 const cellSize = ref(60)
 const isLowPerformance = ref(false)
 
+// 响应式调整单元格大小
+const updateCellSize = () => {
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+  
+  // 基于网格容器尺寸计算单元格大小（8×8网格）
+  const gridContainerWidth = Math.min(viewportWidth * 0.9, 600) - 20 // 减去padding
+  const gridContainerHeight = Math.min(viewportHeight * 0.9, 600) - 20 // 减去padding
+  
+  // 计算适合8×8网格的单元格尺寸
+  const cellWidth = Math.floor(gridContainerWidth / 8)
+  const cellHeight = Math.floor(gridContainerHeight / 8)
+  
+  // 取较小值确保网格完整显示
+  cellSize.value = Math.min(cellWidth, cellHeight)
+  
+  // 确保最小尺寸
+  cellSize.value = Math.max(cellSize.value, 35)
+}
+
 const updateGridConfig = () => {
   const gridConfig = responsiveManager.getCurrentGridConfig()
   cellSize.value = gridConfig.cellSize
@@ -45,8 +65,8 @@ const updateGridConfig = () => {
 }
 
 const gridStyle = computed(() => ({
-  gridTemplateColumns: `repeat(${gameGrid?.cols || 8}, 1fr)`,
-  gridTemplateRows: `repeat(${gameGrid?.rows || 8}, 1fr)`
+  gridTemplateColumns: `repeat(${gameGrid?.cols || 8}, ${cellSize.value}px)`,
+  gridTemplateRows: `repeat(${gameGrid?.rows || 8}, ${cellSize.value}px)`
 }))
 
 const flattenedCells = computed(() => {
@@ -95,8 +115,8 @@ const cellStyle = (cell: GameElement | null) => {
   
   return {
     background,
-    width: `${cellSize.value}px`,
-    height: `${cellSize.value}px`,
+    width: '100%',
+    height: '100%',
     fontSize: isLowPerformance.value ? '22px' : '28px',
     boxShadow: cell.isSpecialPower ? 
       '0 0 25px rgba(255, 215, 0, 0.8), inset 0 2px 8px rgba(255, 255, 255, 0.6)' : 
@@ -117,11 +137,16 @@ const getCol = (index: number): number => {
 
 onMounted(() => {
   updateGridConfig()
+  updateCellSize()
   responsiveManager.addCallback('gameGrid', updateGridConfig)
+  
+  // 添加窗口大小变化监听器
+  window.addEventListener('resize', updateCellSize)
 })
 
 onUnmounted(() => {
   responsiveManager.removeCallback('gameGrid')
+  window.removeEventListener('resize', updateCellSize)
 })
 
 const handleCellClick = performanceOptimizer.throttle((cell: GameElement | null, index: number) => {
@@ -154,9 +179,13 @@ const handleCellClick = performanceOptimizer.throttle((cell: GameElement | null,
   background: rgba(240, 240, 240, 0.8);
   border-radius: 15px;
   transition: all 0.3s ease;
-  width: fit-content;
+  width: min(90vw, 600px);
+  height: min(90vw, 600px);
   max-width: 100%;
   margin: 0 auto;
+  aspect-ratio: 1 / 1;
+  overflow: visible;
+  box-sizing: border-box;
 }
 
 .grid-cell {
@@ -239,10 +268,29 @@ const handleCellClick = performanceOptimizer.throttle((cell: GameElement | null,
 }
 
 /* 响应式设计 */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .grid-container {
+    width: min(85vw, 500px) !important;
+    height: min(85vw, 500px) !important;
     gap: 1px;
     padding: 8px;
+  }
+  
+  .grid-cell {
+    border-radius: 10px;
+  }
+  
+  .element-icon {
+    font-size: clamp(16px, 4vw, 22px);
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-container {
+    width: min(90vw, 400px) !important;
+    height: min(90vw, 400px) !important;
+    gap: 1px;
+    padding: 6px;
   }
   
   .grid-cell {
@@ -250,14 +298,16 @@ const handleCellClick = performanceOptimizer.throttle((cell: GameElement | null,
   }
   
   .element-icon {
-    font-size: 20px;
+    font-size: clamp(14px, 3.5vw, 20px);
   }
 }
 
 @media (max-width: 480px) {
   .grid-container {
-    gap: 1px;
-    padding: 5px;
+    width: min(95vw, 350px) !important;
+    height: min(95vw, 350px) !important;
+    gap: 0.5px;
+    padding: 4px;
   }
   
   .grid-cell {
@@ -265,7 +315,7 @@ const handleCellClick = performanceOptimizer.throttle((cell: GameElement | null,
   }
   
   .element-icon {
-    font-size: 18px;
+    font-size: clamp(12px, 3vw, 18px);
   }
 }
 

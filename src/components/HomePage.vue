@@ -503,7 +503,7 @@ onUnmounted(() => {
 }
 
 .nav-btn {
-  padding: 10px 20px;
+  padding: clamp(8px, 2vw, 10px) clamp(16px, 3vw, 20px);
   background: rgba(255, 255, 255, 0.35);
   border: 2px solid rgba(255, 255, 255, 0.5);
   border-radius: var(--radius-lg);
@@ -514,6 +514,8 @@ onUnmounted(() => {
   backdrop-filter: blur(15px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-size: clamp(12px, 2.5vw, 14px);
+  min-height: 44px;
 }
 
 .nav-btn:hover {

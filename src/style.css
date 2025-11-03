@@ -63,7 +63,7 @@ body {
   line-height: 1.6;
   color: var(--text-primary);
   font-size: var(--font-base);
-  position: fixed;
+  position: relative;
   width: 100%;
   top: 0;
   left: 0;
@@ -1569,15 +1569,16 @@ body {
 }
 
 .btn {
-  padding: 12px 24px;
+  padding: clamp(8px, 2vw, 12px) clamp(16px, 4vw, 24px);
   border: none;
   border-radius: 25px;
-  font-size: 14px;
+  font-size: clamp(12px, 3vw, 14px);
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 1px;
+  min-height: 44px; /* 触摸友好的最小高度 */
 }
 
 .btn-primary {
