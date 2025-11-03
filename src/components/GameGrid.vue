@@ -51,8 +51,9 @@ const updateCellSize = () => {
   // 取较小值确保网格完整显示
   cellSize.value = Math.min(cellWidth, cellHeight)
   
-  // 确保最小尺寸
-  cellSize.value = Math.max(cellSize.value, 35)
+  // 设置最小和最大尺寸限制
+  cellSize.value = Math.max(cellSize.value, 35)  // 最小35px
+  cellSize.value = Math.min(cellSize.value, 70)  // 最大70px
 }
 
 const updateGridConfig = () => {
@@ -179,11 +180,11 @@ const handleCellClick = performanceOptimizer.throttle((cell: GameElement | null,
   background: rgba(240, 240, 240, 0.8);
   border-radius: 15px;
   transition: all 0.3s ease;
-  width: min(90vw, 600px);
-  height: min(90vw, 600px);
-  max-width: 100%;
+  width: fit-content;
+  height: fit-content;
+  max-width: min(90vw, 600px);
+  max-height: min(90vw, 600px);
   margin: 0 auto;
-  aspect-ratio: 1 / 1;
   overflow: visible;
   box-sizing: border-box;
 }
