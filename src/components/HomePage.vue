@@ -1,17 +1,5 @@
 <template>
   <div class="home-page">
-    <!-- 动态水果背景装饰 -->
-    <div class="fruit-decoration fruit-1">🍓</div>
-    <div class="fruit-decoration fruit-2">🍊</div>
-    <div class="fruit-decoration fruit-3">🍋</div>
-    <div class="fruit-decoration fruit-4">🍎</div>
-    <div class="fruit-decoration fruit-5">🍇</div>
-    <div class="fruit-decoration fruit-6">🫐</div>
-    <div class="fruit-decoration fruit-7">🍑</div>
-    <div class="fruit-decoration fruit-8">🍒</div>
-    <div class="fruit-decoration fruit-9">🥝</div>
-    <div class="fruit-decoration fruit-10">🍍</div>
-    
     <!-- 粒子效果背景 -->
     <div class="particles-container">
       <div class="particle" v-for="n in 20" :key="n" :style="getParticleStyle(n)"></div>
@@ -110,7 +98,7 @@
               <div class="auto-complete-message">
                 <div class="auto-complete-icon">✨</div>
                 <div class="auto-complete-text">魔法觉醒中...</div>
-                <div class="auto-complete-moves">赋予 {{ remainingMoves }} 个方块特殊能力</div>
+                <div class="auto-complete-moves">赋予 {{ gameState.specialPowersAssigned || 0 }} 个方块特殊能力</div>
                 <div class="auto-complete-countdown">1秒后统一消除...</div>
               </div>
             </div>

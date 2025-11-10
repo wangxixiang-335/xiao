@@ -6,6 +6,8 @@ export interface GameElement {
   isMatched: boolean;
   isSelected: boolean;
   isAnimating: boolean;
+  isSpecialPower?: boolean;
+  powerType?: 'row' | 'col' | 'both';
 }
 
 export enum ElementType {
@@ -34,6 +36,7 @@ export interface GameState {
   combo: number;
   isAutoCompleting: boolean;
   target?: GameTarget;
+  specialPowersAssigned?: number;
 }
 
 export enum GameMode {

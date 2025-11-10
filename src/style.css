@@ -791,21 +791,7 @@ body {
   min-height: 55px;
 }
 
-/* 水果装饰动画 */
-.fruit-decoration {
-  position: absolute;
-  font-size: 40px;
-  animation: float 6s ease-in-out infinite;
-  z-index: 1;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
-}
 
-.fruit-1 { top: 10%; left: 5%; animation-delay: 0s; }
-.fruit-2 { top: 20%; right: 10%; animation-delay: 1s; }
-.fruit-3 { top: 40%; left: 15%; animation-delay: 2s; }
-.fruit-4 { top: 60%; right: 5%; animation-delay: 3s; }
-.fruit-5 { bottom: 20%; left: 10%; animation-delay: 4s; }
-.fruit-6 { bottom: 10%; right: 15%; animation-delay: 5s; }
 
 @keyframes float {
   0%, 100% { transform: translateY(0px) rotate(0deg); }

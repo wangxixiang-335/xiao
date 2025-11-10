@@ -1088,19 +1088,22 @@ export const useGameStore = defineStore('game', () => {
     // 播放特殊音效表示开始自动完成
     audioManager.playSound('victory')
     
-    // 立即分配特殊能力到方块（传递当前的剩余步数）
-    assignSpecialPowers()
+    // 在分配特殊能力之前，先保存实际的剩余步数用于显示
+    const movesToAssign = gameState.value.moves
+    
+    // 立即分配特殊能力到方块（传递实际的剩余步数）
+    assignSpecialPowers(movesToAssign)
     
     // 分配完特殊能力后，再将步数设为0
     gameState.value.moves = 0
     console.log('自动完成开始，步数已设为0')
   }
   
-  function assignSpecialPowers(): void {
+  function assignSpecialPowers(movesToAssign: number): void {
     const { cells, rows, cols } = gameGrid.value
     
-    // 在函数开始时就保存剩余步数，避免被后续修改影响
-    const remainingMoves = gameState.value.moves
+    // 使用传入的实际步数，而不是当前游戏状态中的步数
+    const remainingMoves = movesToAssign
     console.log('分配特殊能力，使用剩余步数:', remainingMoves)
     
     const availablePositions: { row: number; col: number }[] = []
@@ -1137,7 +1140,11 @@ export const useGameStore = defineStore('game', () => {
       }
     }
     
-    console.log(`总共分配了 ${Math.min(remainingMoves, availablePositions.length)} 个特殊能力`)
+    const assignedCount = Math.min(remainingMoves, availablePositions.length)
+    console.log(`总共分配了 ${assignedCount} 个特殊能力`)
+    
+    // 设置实际分配的特殊能力数量
+    gameState.value.specialPowersAssigned = assignedCount
     
     // 3秒后执行统一消除
     setTimeout(() => {
